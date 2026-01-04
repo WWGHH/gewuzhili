@@ -1,732 +1,87 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>随机点名系统</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    
-    <!-- 配置Tailwind自定义颜色和字体 -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3B82F6',
-                        secondary: '#EC4899',
-                        accent: '#8B5CF6',
-                        dark: '#1E293B',
-                        light: '#F8FAFC'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    }
-                }
-            }
+    <title>首页</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
         }
-    </script>
-    
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .content-auto {
-                content-visibility: auto;
-            }
-            .text-shadow {
-                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .animate-bounce-slow {
-                animation: bounce 2s infinite;
-            }
-            .animate-pulse-slow {
-                animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            }
-            .name-animation {
-                transition: all 0.3s ease-in-out;
-            }
-            .name-animation:hover {
-                transform: scale(1.05);
-            }
-            .format-notice {
-                animation: fadeInOut 3s ease-in-out;
-            }
-            .modal-backdrop {
-                backdrop-filter: blur(3px);
-            }
-            @keyframes fadeInOut {
-                0%, 100% { opacity: 0; }
-                10%, 90% { opacity: 1; }
-            }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 每行5个按钮 */
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen font-sans">
-    <div class="relative container mx-auto px-4 py-8 max-w-4xl">
-        <!-- 右上角图片及扫码提示 -->
-        <div class="absolute top-4 right-4 md:top-6 md:right-6 z-10 flex flex-col items-center">
-            <div class="w-16 h-16 md:w-20 md:h-20 rounded-lg shadow-lg overflow-hidden mb-1">
-                <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/c3b0e222103d4fe08286430f65152ac6.jpeg~tplv-a9rns2rl98-24:720:720.jpeg?rk3s=1fb89129&x-expires=1757919502&x-signature=0A0Pqh4OyEo6g3FkWQV5EBUL4R0%3D" 
-                     alt="公众号二维码" 
-                     class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
-            </div>
-            <span class="text-xs md:text-sm text-gray-600 font-medium">扫码关注</span>
-        </div>
-        
-        <!-- 标题区域 -->
-        <header class="text-center mb-10 pt-6">
-            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2 text-shadow">
-                随机点名系统
-            </h1>
-            <p class="text-gray-600 text-lg">支持从表格复制名单（自动转换格式）</p>
-        </header>
-        
-        <!-- 主要内容区域 -->
-        <main class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-8 relative z-0">
-            <!-- 格式转换提示（默认隐藏） -->
-            <div id="formatNotice" class="hidden mb-4 bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded format-notice">
-                <p><i class="fa fa-info-circle mr-2"></i><span>已自动将表格格式转换为姓名列表</span></p>
-            </div>
-            
-            <!-- 点名显示区域 -->
-            <div class="flex flex-col items-center justify-center mb-10">
-                <div class="w-full max-w-md h-40 md:h-56 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg flex items-center justify-center mb-6 overflow-hidden relative">
-                    <div class="absolute inset-0 bg-[url('https://picsum.photos/id/1/800/600')] opacity-10 bg-center bg-cover"></div>
-                    <div id="nameDisplay" class="text-white text-[clamp(1.8rem,5vw,3rem)] font-bold text-center px-4 name-animation">
-                        准备开始
-                    </div>
-                </div>
-                
-                <!-- 控制按钮 -->
-                <div class="flex gap-4 md:gap-6">
-                    <button id="startBtn" class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center gap-2">
-                        <i class="fa fa-play"></i>
-                        <span>开始</span>
-                    </button>
-                    <button id="stopBtn" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center gap-2" disabled>
-                        <i class="fa fa-stop"></i>
-                        <span>停止</span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- 名单管理区域 -->
-            <div class="bg-gray-50 rounded-xl p-5 shadow-inner">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                    <i class="fa fa-users text-primary mr-2"></i>名单管理
-                    <span class="ml-2 text-sm text-gray-500" id="adminStatus">
-                        <i class="fa fa-lock"></i> 未登录
-                    </span>
-                </h2>
-                
-                <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <textarea id="nameInput" placeholder="输入姓名（支持多行或表格格式复制粘贴）" 
-                           class="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 cursor-not-allowed focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                           rows="3" disabled></textarea>
-                    <button id="addBtn" class="bg-gray-400 text-white font-medium py-3 px-6 rounded-lg shadow cursor-not-allowed" disabled>
-                        <i class="fa fa-plus mr-1"></i> 批量添加
-                    </button>
-                </div>
-                
-                <!-- 名单显示 -->
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="text-gray-600"><i class="fa fa-list-ul mr-1"></i> 当前名单 (<span id="nameCount">0</span>人)</p>
-                        <button id="clearBtn" class="text-gray-400 cursor-not-allowed text-sm flex items-center" disabled>
-                            <i class="fa fa-trash-o mr-1"></i> 清空名单
-                        </button>
-                    </div>
-                    
-                    <div id="nameList" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-white rounded-lg border border-gray-200">
-                        <p class="text-gray-400 italic w-full text-center py-4">名单为空，请先登录管理员</p>
-                    </div>
-                </div>
-                
-                <!-- 历史记录 -->
-                <div>
-                    <h3 class="text-gray-600 mb-2 flex items-center">
-                        <i class="fa fa-history text-primary mr-1"></i> 历史记录
-                    </h3>
-                    <div id="historyList" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-3 bg-white rounded-lg border border-gray-200">
-                        <p class="text-gray-400 italic w-full text-center py-2">暂无记录</p>
-                    </div>
-                </div>
-                
-                <!-- 管理员操作按钮 -->
-                <div class="mt-4 text-right flex justify-end gap-2">
-                    <button id="changePwdBtn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg shadow transform transition-all duration-300 hover:scale-105">
-                        <i class="fa fa-refresh mr-1"></i> 修改密码
-                    </button>
-                    <button id="loginBtn" class="bg-gray-700 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg shadow transform transition-all duration-300 hover:scale-105">
-                        <i class="fa fa-key mr-1"></i> 管理员登录
-                    </button>
-                </div>
-            </div>
-        </main>
-        
-        <!-- 页脚 -->
-        <footer class="text-center text-gray-500 text-sm">
-            <p>随机点名系统 &copy; 2023 | 公平公正 · 高效便捷</p>
-        </footer>
+<body>
+    <h1>欢迎来到首页</h1>
+    <div class="button-container">
+        <!-- 按钮 1 -->
+        <a href="page1.html" class="button">页面 1</a>
+        <!-- 按钮 2 -->
+        <a href="page2.html" class="button">页面 2</a>
+        <!-- 按钮 3 -->
+        <a href="page3.html" class="button">页面 3</a>
+        <!-- 按钮 4 -->
+        <a href="page4.html" class="button">页面 4</a>
+        <!-- 按钮 5 -->
+        <a href="page5.html" class="button">页面 5</a>
+        <!-- 按钮 6 -->
+        <a href="page6.html" class="button">页面 6</a>
+        <!-- 按钮 7 -->
+        <a href="page7.html" class="button">页面 7</a>
+        <!-- 按钮 8 -->
+        <a href="page8.html" class="button">页面 8</a>
+        <!-- 按钮 9 -->
+        <a href="page9.html" class="button">页面 9</a>
+        <!-- 按钮 10 -->
+        <a href="page10.html" class="button">页面 10</a>
+        <!-- 按钮 11 -->
+        <a href="page11.html" class="button">页面 11</a>
+        <!-- 按钮 12 -->
+        <a href="page12.html" class="button">页面 12</a>
+        <!-- 按钮 13 -->
+        <a href="page13.html" class="button">页面 13</a>
+        <!-- 按钮 14 -->
+        <a href="page14.html" class="button">页面 14</a>
+        <!-- 按钮 15 -->
+        <a href="page15.html" class="button">页面 15</a>
+        <!-- 按钮 16 -->
+        <a href="page16.html" class="button">页面 16</a>
+        <!-- 按钮 17 -->
+        <a href="page17.html" class="button">页面 17</a>
+        <!-- 按钮 18 -->
+        <a href="page18.html" class="button">页面 18</a>
+        <!-- 按钮 19 -->
+        <a href="page19.html" class="button">页面 19</a>
+        <!-- 按钮 20 -->
+        <a href="page20.html" class="button">页面 20</a>
     </div>
-    
-    <!-- 密码登录模态框 -->
-    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-6 md:p-8 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
-            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fa fa-lock text-primary mr-2"></i>管理员验证
-            </h3>
-            <p class="text-gray-600 mb-4">请输入管理员密码以修改名单</p>
-            
-            <div class="mb-4">
-                <label for="adminPassword" class="block text-gray-700 mb-2">密码</label>
-                <input type="password" id="adminPassword" 
-                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                       placeholder="输入管理员密码">
-                <p id="passwordError" class="text-red-500 text-sm mt-2 hidden">密码错误，请重试</p>
-            </div>
-            
-            <div class="flex gap-3">
-                <button id="cancelLogin" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-300">
-                    取消
-                </button>
-                <button id="confirmLogin" class="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300">
-                    确认登录
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 修改密码模态框 -->
-    <div id="changePwdModal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-6 md:p-8 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="changePwdContent">
-            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fa fa-refresh text-primary mr-2"></i>修改管理员密码
-            </h3>
-            <p class="text-gray-600 mb-4">请输入原密码和新密码完成修改</p>
-            
-            <div class="mb-4">
-                <label for="oldPassword" class="block text-gray-700 mb-2">原密码</label>
-                <input type="password" id="oldPassword" 
-                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                       placeholder="输入原密码">
-            </div>
-            
-            <div class="mb-4">
-                <label for="newPassword" class="block text-gray-700 mb-2">新密码</label>
-                <input type="password" id="newPassword" 
-                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                       placeholder="输入新密码">
-            </div>
-            
-            <div class="mb-4">
-                <label for="confirmPassword" class="block text-gray-700 mb-2">确认新密码</label>
-                <input type="password" id="confirmPassword" 
-                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                       placeholder="再次输入新密码">
-            </div>
-            
-            <p id="changePwdError" class="text-red-500 text-sm mt-2 mb-4 hidden"></p>
-            <p id="changePwdSuccess" class="text-green-500 text-sm mt-2 mb-4 hidden">密码修改成功！</p>
-            
-            <div class="flex gap-3">
-                <button id="cancelChangePwd" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-300">
-                    取消
-                </button>
-                <button id="confirmChangePwd" class="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300">
-                    确认修改
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 存储名单数据
-        let nameData = [];
-        // 存储历史记录
-        let historyData = [];
-        // 随机选择的计时器
-        let randomInterval;
-        // 是否正在随机选择中
-        let isRunning = false;
-        // 管理员登录状态
-        let isAdminLoggedIn = false;
-        // 管理员密码 (从本地存储获取，默认admin123)
-        let ADMIN_PASSWORD = localStorage.getItem('adminPassword') || "admin123";
-        
-        // DOM元素
-        const nameInput = document.getElementById('nameInput');
-        const addBtn = document.getElementById('addBtn');
-        const nameList = document.getElementById('nameList');
-        const nameCount = document.getElementById('nameCount');
-        const clearBtn = document.getElementById('clearBtn');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const nameDisplay = document.getElementById('nameDisplay');
-        const historyList = document.getElementById('historyList');
-        const formatNotice = document.getElementById('formatNotice');
-        const loginBtn = document.getElementById('loginBtn');
-        const adminStatus = document.getElementById('adminStatus');
-        const changePwdBtn = document.getElementById('changePwdBtn');
-        
-        // 登录模态框元素
-        const passwordModal = document.getElementById('passwordModal');
-        const modalContent = document.getElementById('modalContent');
-        const adminPassword = document.getElementById('adminPassword');
-        const confirmLogin = document.getElementById('confirmLogin');
-        const cancelLogin = document.getElementById('cancelLogin');
-        const passwordError = document.getElementById('passwordError');
-        
-        // 修改密码模态框元素
-        const changePwdModal = document.getElementById('changePwdModal');
-        const changePwdContent = document.getElementById('changePwdContent');
-        const oldPassword = document.getElementById('oldPassword');
-        const newPassword = document.getElementById('newPassword');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const changePwdError = document.getElementById('changePwdError');
-        const changePwdSuccess = document.getElementById('changePwdSuccess');
-        const cancelChangePwd = document.getElementById('cancelChangePwd');
-        const confirmChangePwd = document.getElementById('confirmChangePwd');
-        
-        // 更新管理员状态显示
-        function updateAdminStatus() {
-            if (isAdminLoggedIn) {
-                adminStatus.innerHTML = '<i class="fa fa-unlock"></i> 已登录';
-                adminStatus.classList.add('text-green-600');
-                adminStatus.classList.remove('text-gray-500');
-                loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> 退出登录';
-                changePwdBtn.classList.remove('hidden');
-                
-                // 启用编辑功能
-                enableEditFunctions();
-            } else {
-                adminStatus.innerHTML = '<i class="fa fa-lock"></i> 未登录';
-                adminStatus.classList.remove('text-green-600');
-                adminStatus.classList.add('text-gray-500');
-                loginBtn.innerHTML = '<i class="fa fa-key mr-1"></i> 管理员登录';
-                changePwdBtn.classList.add('hidden');
-                
-                // 禁用编辑功能
-                disableEditFunctions();
-            }
-        }
-        
-        // 启用编辑功能
-        function enableEditFunctions() {
-            nameInput.disabled = false;
-            nameInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
-            
-            addBtn.disabled = false;
-            addBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-            addBtn.classList.add('bg-accent', 'hover:bg-accent/90');
-            
-            clearBtn.disabled = false;
-            clearBtn.classList.remove('text-gray-400', 'cursor-not-allowed');
-            clearBtn.classList.add('text-red-500', 'hover:text-red-600', 'transition-colors');
-        }
-        
-        // 禁用编辑功能
-        function disableEditFunctions() {
-            nameInput.disabled = true;
-            nameInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-            
-            addBtn.disabled = true;
-            addBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-            addBtn.classList.remove('bg-accent', 'hover:bg-accent/90');
-            
-            clearBtn.disabled = true;
-            clearBtn.classList.add('text-gray-400', 'cursor-not-allowed');
-            clearBtn.classList.remove('text-red-500', 'hover:text-red-600', 'transition-colors');
-        }
-        
-        // 显示登录模态框
-        function showModal() {
-            passwordModal.classList.remove('hidden');
-            // 触发动画
-            setTimeout(() => {
-                modalContent.classList.remove('scale-95', 'opacity-0');
-                modalContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            adminPassword.value = '';
-            passwordError.classList.add('hidden');
-            adminPassword.focus();
-        }
-        
-        // 隐藏登录模态框
-        function hideModal() {
-            modalContent.classList.remove('scale-100', 'opacity-100');
-            modalContent.classList.add('scale-95', 'opacity-0');
-            // 延迟隐藏背景，等待动画完成
-            setTimeout(() => {
-                passwordModal.classList.add('hidden');
-            }, 300);
-        }
-        
-        // 显示修改密码模态框
-        function showChangePwdModal() {
-            changePwdModal.classList.remove('hidden');
-            // 触发动画
-            setTimeout(() => {
-                changePwdContent.classList.remove('scale-95', 'opacity-0');
-                changePwdContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            oldPassword.value = '';
-            newPassword.value = '';
-            confirmPassword.value = '';
-            changePwdError.classList.add('hidden');
-            changePwdSuccess.classList.add('hidden');
-            oldPassword.focus();
-        }
-        
-        // 隐藏修改密码模态框
-        function hideChangePwdModal() {
-            changePwdContent.classList.remove('scale-100', 'opacity-100');
-            changePwdContent.classList.add('scale-95', 'opacity-0');
-            // 延迟隐藏背景，等待动画完成
-            setTimeout(() => {
-                changePwdModal.classList.add('hidden');
-            }, 300);
-        }
-        
-        // 处理粘贴事件，自动转换表格格式
-        nameInput.addEventListener('paste', function(e) {
-            if (!isAdminLoggedIn) return;
-            
-            // 延迟处理，确保粘贴内容已更新
-            setTimeout(() => {
-                const content = nameInput.value;
-                
-                // 检查是否包含制表符（表格格式的特征）
-                if (content.includes('\t')) {
-                    // 将制表符替换为换行符
-                    const convertedContent = content.replace(/\t+/g, '\n')
-                        // 处理可能的多个连续换行
-                        .replace(/\n+/g, '\n')
-                        // 去除每行前后空格
-                        .split('\n')
-                        .map(line => line.trim())
-                        .join('\n')
-                        // 去除首尾空行
-                        .replace(/^\n+|\n+$/g, '');
-                    
-                    // 更新输入框内容
-                    nameInput.value = convertedContent;
-                    
-                    // 显示格式转换提示
-                    showFormatNotice();
-                }
-            }, 100);
-        });
-        
-        // 显示格式转换提示
-        function showFormatNotice() {
-            formatNotice.classList.remove('hidden');
-            // 3秒后自动隐藏
-            setTimeout(() => {
-                formatNotice.classList.add('hidden');
-            }, 3000);
-        }
-        
-        // 更新名单显示
-        function updateNameList() {
-            // 清空现有内容
-            nameList.innerHTML = '';
-            
-            // 如果名单为空，显示提示信息
-            if (nameData.length === 0) {
-                nameList.innerHTML = `<p class="text-gray-400 italic w-full text-center py-4">${isAdminLoggedIn ? '名单为空，请添加姓名' : '名单为空，请先登录管理员'}</p>`;
-                nameCount.textContent = '0';
-                return;
-            }
-            
-            // 更新计数
-            nameCount.textContent = nameData.length;
-            
-            // 添加所有姓名标签
-            nameData.forEach((name, index) => {
-                const nameTag = document.createElement('div');
-                nameTag.className = 'bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm flex items-center animate-fadeIn';
-                
-                // 根据管理员状态决定是否显示删除按钮
-                if (isAdminLoggedIn) {
-                    nameTag.innerHTML = `
-                        ${name}
-                        <button class="ml-1 text-blue-600 hover:text-red-500 transition-colors" data-index="${index}">
-                            <i class="fa fa-times-circle"></i>
-                        </button>
-                    `;
-                } else {
-                    nameTag.textContent = name;
-                }
-                
-                nameList.appendChild(nameTag);
-            });
-            
-            // 如果是管理员，添加删除单个姓名的事件监听
-            if (isAdminLoggedIn) {
-                document.querySelectorAll('#nameList button').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const index = parseInt(this.getAttribute('data-index'));
-                        // 从数组中移除
-                        nameData.splice(index, 1);
-                        // 更新显示
-                        updateNameList();
-                        // 保存到本地存储
-                        saveNames();
-                    });
-                });
-            }
-        }
-        
-        // 更新历史记录显示
-        function updateHistoryList() {
-            // 清空现有内容
-            historyList.innerHTML = '';
-            
-            // 如果历史记录为空，显示提示信息
-            if (historyData.length === 0) {
-                historyList.innerHTML = '<p class="text-gray-400 italic w-full text-center py-2">暂无记录</p>';
-                return;
-            }
-            
-            // 添加所有历史记录
-            historyData.forEach((name, index) => {
-                const historyTag = document.createElement('div');
-                historyTag.className = `rounded-full px-3 py-1 text-sm ${index === 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`;
-                historyTag.textContent = name;
-                historyList.appendChild(historyTag);
-            });
-        }
-        
-        // 批量添加姓名（处理换行符和表格格式）
-        function addNamesBatch() {
-            if (!isAdminLoggedIn) return;
-            
-            // 1. 获取输入框内容
-            const inputContent = nameInput.value.trim();
-            if (!inputContent) {
-                alert('请输入或粘贴姓名');
-                return;
-            }
-            
-            // 2. 处理内容：先替换制表符，再按换行分割
-            const newNames = inputContent
-                .replace(/\t+/g, '\n')  // 替换制表符为换行
-                .split('\n')            // 按换行分割
-                .map(name => name.trim())  // 去除前后空格
-                .filter(name => name);     // 过滤空字符串
-            
-            if (newNames.length === 0) {
-                alert('未找到有效姓名，请检查输入');
-                return;
-            }
-            
-            // 3. 添加到名单（去重）
-            newNames.forEach(name => {
-                if (!nameData.includes(name)) {
-                    nameData.push(name);
-                }
-            });
-            
-            // 4. 更新显示
-            updateNameList();
-            
-            // 5. 保存到本地存储
-            saveNames();
-            
-            // 6. 清空输入框
-            nameInput.value = '';
-        }
-        
-        // 保存名单到本地存储
-        function saveNames() {
-            localStorage.setItem('nameData', JSON.stringify(nameData));
-        }
-        
-        // 从本地存储加载名单
-        function loadNames() {
-            const savedNames = localStorage.getItem('nameData');
-            if (savedNames) {
-                nameData = JSON.parse(savedNames);
-                updateNameList();
-            }
-        }
-        
-        // 清空名单
-        function clearNames() {
-            if (!isAdminLoggedIn) return;
-            
-            if (nameData.length === 0) return;
-            
-            if (confirm('确定要清空所有名单吗？此操作不可恢复！')) {
-                nameData = [];
-                updateNameList();
-                saveNames();
-            }
-        }
-        
-        // 开始随机点名
-        function startRandom() {
-            if (isRunning || nameData.length === 0) return;
-            
-            isRunning = true;
-            startBtn.disabled = true;
-            startBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-            startBtn.classList.remove('bg-primary', 'hover:bg-primary/90', 'hover:scale-105', 'hover:shadow-xl');
-            
-            stopBtn.disabled = false;
-            stopBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-            stopBtn.classList.add('bg-secondary', 'hover:bg-secondary/90', 'hover:scale-105', 'hover:shadow-xl');
-            
-            // 快速切换显示的名字
-            randomInterval = setInterval(() => {
-                const randomIndex = Math.floor(Math.random() * nameData.length);
-                nameDisplay.textContent = nameData[randomIndex];
-            }, 100);
-        }
-        
-        // 停止随机点名
-        function stopRandom() {
-            if (!isRunning) return;
-            
-            clearInterval(randomInterval);
-            isRunning = false;
-            
-            stopBtn.disabled = true;
-            stopBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-            stopBtn.classList.remove('bg-secondary', 'hover:bg-secondary/90', 'hover:scale-105', 'hover:shadow-xl');
-            
-            startBtn.disabled = false;
-            startBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-            startBtn.classList.add('bg-primary', 'hover:bg-primary/90', 'hover:scale-105', 'hover:shadow-xl');
-            
-            // 记录到历史
-            const selectedName = nameDisplay.textContent;
-            addToHistory(selectedName);
-        }
-        
-        // 添加到历史记录
-        function addToHistory(name) {
-            // 插入到开头
-            historyData.unshift(name);
-            
-            // 只保留最近10条记录
-            if (historyData.length > 10) {
-                historyData.pop();
-            }
-            
-            // 更新显示
-            updateHistoryList();
-        }
-        
-        // 管理员登录/退出
-        function toggleAdminLogin() {
-            if (isAdminLoggedIn) {
-                // 退出登录
-                isAdminLoggedIn = false;
-                updateAdminStatus();
-            } else {
-                // 显示登录模态框
-                showModal();
-            }
-        }
-        
-        // 验证管理员密码
-        function verifyAdminPassword() {
-            const password = adminPassword.value.trim();
-            
-            if (password === ADMIN_PASSWORD) {
-                isAdminLoggedIn = true;
-                hideModal();
-                updateAdminStatus();
-            } else {
-                passwordError.classList.remove('hidden');
-                adminPassword.focus();
-            }
-        }
-        
-        // 修改管理员密码
-        function changeAdminPassword() {
-            const oldPwd = oldPassword.value.trim();
-            const newPwd = newPassword.value.trim();
-            const confirmPwd = confirmPassword.value.trim();
-            
-            // 重置提示
-            changePwdError.classList.add('hidden');
-            changePwdSuccess.classList.add('hidden');
-            
-            // 验证原密码
-            if (oldPwd !== ADMIN_PASSWORD) {
-                changePwdError.textContent = '原密码不正确';
-                changePwdError.classList.remove('hidden');
-                oldPassword.focus();
-                return;
-            }
-            
-            // 验证新密码
-            if (newPwd.length < 6) {
-                changePwdError.textContent = '新密码长度不能少于6位';
-                changePwdError.classList.remove('hidden');
-                newPassword.focus();
-                return;
-            }
-            
-            // 验证确认密码
-            if (newPwd !== confirmPwd) {
-                changePwdError.textContent = '两次输入的新密码不一致';
-                changePwdError.classList.remove('hidden');
-                confirmPassword.focus();
-                return;
-            }
-            
-            // 保存新密码
-            ADMIN_PASSWORD = newPwd;
-            localStorage.setItem('adminPassword', newPwd);
-            
-            // 显示成功提示
-            changePwdSuccess.classList.remove('hidden');
-            
-            // 3秒后关闭模态框
-            setTimeout(() => {
-                hideChangePwdModal();
-            }, 1500);
-        }
-        
-        // 事件监听
-        addBtn.addEventListener('click', addNamesBatch);
-        clearBtn.addEventListener('click', clearNames);
-        startBtn.addEventListener('click', startRandom);
-        stopBtn.addEventListener('click', stopRandom);
-        loginBtn.addEventListener('click', toggleAdminLogin);
-        changePwdBtn.addEventListener('click', showChangePwdModal);
-        
-        // 登录模态框事件
-        confirmLogin.addEventListener('click', verifyAdminPassword);
-        cancelLogin.addEventListener('click', hideModal);
-        adminPassword.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                verifyAdminPassword();
-            }
-        });
-        
-        // 修改密码模态框事件
-        confirmChangePwd.addEventListener('click', changeAdminPassword);
-        cancelChangePwd.addEventListener('click', hideChangePwdModal);
-        confirmPassword.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                changeAdminPassword();
-            }
-        });
-        
-        // 初始化
-        function init() {
-            loadNames();
-            updateHistoryList();
-            updateAdminStatus();
-        }
-        
-        // 页面加载完成后初始化
-        window.addEventListener('DOMContentLoaded', init);
-    </script>
 </body>
 </html>
