@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拖动式排座位</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 12px;
+            text-align: center;
+            min-width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-sizing: border-box;
+        }
+
+        /* 加粗中间的竖线作为过道 */
+        #seating-table td:nth-child(4) {
+            border-right: 3px solid black;
+        }
+
+        #name-list {
+            margin-bottom: 20px;
+        }
+
+        .draggable {
+            cursor: move;
+            background-color: lightblue;
+            margin: 5px;
+            padding: 5px;
+            display: inline-block;
+        }
+
+        /* 讲桌表格样式 */
+        #lecture-table {
+            margin: 20px auto;
+            width: auto;
+        }
+
+        #lecture-table td {
+            background-color: lightgray;
+            min-width: 100px;
+            /* 保持讲桌高度为原来的八分之一 */
+            height: 9px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 调整座位表格的高度为 300px */
+        #seating-table {
+            height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <label for="name-input">粘贴姓名（每行一个）：</label>
+        <textarea id="name-input" rows="10" cols="30"></textarea>
+        <button onclick="generateNameList()">生成姓名列表</button>
+        <button onclick="undoLastAction()">撤销</button>
+    </div>
+    <div id="name-list"></div>
+    <table id="seating-table">
+        <tbody>
+            <!-- 生成 8x8 表格 -->
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    <!-- 讲桌表格 -->
+    <table id="lecture-table">
+        <tbody>
+            <tr>
+                <td>讲桌</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        const historyStack = [];
+        let draggedElement;
+        let nameListContainer;
+
+        function generateNameList() {
+            const nameInput = document.getElementById('name-input').value;
+            const names = nameInput.split('\n').filter(name => name.trim()!== '');
+            nameListContainer = document.getElementById('name-list');
+            nameListContainer.innerHTML = '';
+            names.forEach(name => {
+                const div = document.createElement('div');
+                div.textContent = name;
+                div.classList.add('draggable');
+                div.draggable = true;
+                div.addEventListener('dragstart', dragStart);
+                div.addEventListener('touchstart', touchStart);
+                nameListContainer.appendChild(div);
+            });
+        }
+
+        function dragStart(event) {
+            event.dataTransfer.setData('text/plain', event.target.textContent);
+            event.dataTransfer.setData('elementId', event.target.id);
+            if (!event.target.id) {
+                event.target.id = `draggable-${Date.now()}`;
+                event.dataTransfer.setData('elementId', event.target.id);
+            }
+            // 记录原始父容器ID
+            event.target.dataset.originalParentId = event.target.parentElement.id;
+            draggedElement = event.target;
+        }
+
+        function touchStart(event) {
+            event.preventDefault();
+            const touch = event.touches[0];
+            const target = touch.target;
+            dragStart({
+                target: target,
+                dataTransfer: {
+                    setData: (key, value) => {
+                        target.dataset[key] = value;
+                    }
+                }
+            });
+            document.addEventListener('touchmove', touchMove);
+            document.addEventListener('touchend', touchEnd);
+        }
+
+        function touchMove(event) {
+            event.preventDefault();
+        }
+
+        function touchEnd(event) {
+            event.preventDefault();
+            const touch = event.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && target.tagName === 'TD') {
+                drop({
+                    target: target,
+                    dataTransfer: {
+                        getData: (key) => {
+                            return draggedElement.dataset[key];
+                        }
+                    }
+                });
+            }
+            document.removeEventListener('touchmove', touchMove);
+            document.removeEventListener('touchend', touchEnd);
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData('text/plain');
+            const elementId = event.dataTransfer.getData('elementId');
+            const draggedElement = document.getElementById(elementId);
+
+            // 获取原始父容器ID
+            const originalParentId = draggedElement?.dataset.originalParentId || 'name-list';
+            const originalParent = document.getElementById(originalParentId);
+
+            // 保存详细的历史记录
+            historyStack.push({
+                cell: event.target,
+                oldValue: event.target.textContent,
+                newValue: data,
+                draggedElementId: elementId,
+                originalParentId: originalParentId,
+                originalParent: originalParent,
+                elementHtml: draggedElement?.outerHTML
+            });
+
+            event.target.textContent = data;
+
+            if (draggedElement) {
+                draggedElement.remove();
+            }
+        }
+
+        function undoLastAction() {
+            if (historyStack.length > 0) {
+                const lastAction = historyStack.pop();
+
+                // 恢复单元格内容
+                lastAction.cell.textContent = lastAction.oldValue;
+
+                // 如果有被拖动的元素，恢复它的位置
+                if (lastAction.draggedElementId && lastAction.originalParent) {
+                    // 创建新元素
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = lastAction.elementHtml;
+                    const newElement = tempDiv.firstElementChild;
+
+                    if (newElement) {
+                        // 重新添加事件监听器
+                        newElement.addEventListener('dragstart', dragStart);
+                        newElement.addEventListener('touchstart', touchStart);
+
+                        // 恢复到原始位置
+                        lastAction.originalParent.appendChild(newElement);
+                    }
+                }
+            }
+        }
+
+        const tableCells = document.querySelectorAll('#seating-table td');
+        tableCells.forEach(cell => {
+            cell.addEventListener('dragover', allowDrop);
+            cell.addEventListener('drop', drop);
+            cell.addEventListener('touchmove', allowDrop);
+            cell.addEventListener('touchend', (event) => {
+                if (draggedElement) {
+                    drop({
+                        target: cell,
+                        dataTransfer: {
+                            getData: (key) => {
+                                return draggedElement.dataset[key];
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
