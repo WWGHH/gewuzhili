@@ -1,37 +1,84 @@
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-from Crypto.Util.Padding import pad
-import base64
-
-# 读取HTML文件
-with open('人教版物理必修一第一章第一节学案.html', 'r', encoding='utf-8') as f:
-    html_content = f.read()
-
-# 生成随机密钥和IV
-key = get_random_bytes(16)  # 128位密钥
-iv = get_random_bytes(16)   # 128位IV
-
-# 创建AES加密器
-cipher = AES.new(key, AES.MODE_CBC, iv)
-
-# 加密内容
-encrypted_bytes = cipher.encrypt(pad(html_content.encode('utf-8'), AES.block_size))
-
-# 转换为base64字符串
-encrypted_base64 = base64.b64encode(encrypted_bytes).decode('utf-8')
-key_base64 = base64.b64encode(key).decode('utf-8')
-iv_base64 = base64.b64encode(iv).decode('utf-8')
-
-# 创建解密后的HTML模板
-decrypted_html = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>人教版物理必修一第一章第一节 质点、参考系和坐标系 学案</title>\n    <!-- 引入CryptoJS库 -->\n    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>\n    <script>\n        // AES解密函数\n        function decryptContent() {\n            const key = CryptoJS.enc.Base64.parse("{key}");\n            const iv = CryptoJS.enc.Base64.parse("{iv}");\n            const encrypted = "{encrypted}";\n            \n            // 解密\n            const decrypted = CryptoJS.AES.decrypt(encrypted, key, {\n                iv: iv,\n                mode: CryptoJS.mode.CBC,\n                padding: CryptoJS.pad.Pkcs7\n            });\n            \n            // 获取解密后的HTML内容\n            const html = decrypted.toString(CryptoJS.enc.Utf8);\n            \n            // 替换当前页面内容\n            document.open();\n            document.write(html);\n            document.close();\n        }\n        \n        // 页面加载时解密\n        window.addEventListener("load", decryptContent);\n    </script>\n</head>\n<body>\n    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 18px;">\n        页面加载中，请稍候...\n    </div>\n</body>\n</html>'
-
-# 替换模板中的密钥、IV和加密内容
-decrypted_html = decrypted_html.replace('{key}', key_base64)
-decrypted_html = decrypted_html.replace('{iv}', iv_base64)
-decrypted_html = decrypted_html.replace('{encrypted}', encrypted_base64)
-
-# 写入加密后的HTML文件
-with open('encrypted_index.html', 'w', encoding='utf-8') as f:
-    f.write(decrypted_html)
-
-print("加密完成！生成的加密文件为: encrypted_index.html")
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人教版物理必修一第一章第一节 质点、参考系和坐标系 学案</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        // 反调试保护
+        (function() {
+            // 检测开发者工具
+            let devtools = false;
+            const threshold = 160;
+            
+            const detectDevTools = () => {
+                if (window.outerHeight - window.innerHeight > threshold || 
+                    window.outerWidth - window.innerWidth > threshold) {
+                    devtools = true;
+                    document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 18px;">检测到开发者工具，页面已锁定</div>';
+                }
+            };
+            
+            detectDevTools();
+            setInterval(detectDevTools, 1000);
+            
+            // 禁止右键菜单
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // 禁止文本选择
+            document.addEventListener('selectstart', (e) => e.preventDefault());
+            
+            // 禁止复制
+            document.addEventListener('copy', (e) => e.preventDefault());
+        })();
+        
+        async function decryptContent() {
+            const keyId = '{{key_id}}';
+            const iv = CryptoJS.enc.Base64.parse('{{iv}}');
+            const encrypted = '{{encrypted_content}}';
+            
+            try {
+                // 从服务器获取密钥
+                const response = await fetch(`/get_key/${keyId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get key');
+                }
+                
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // 解密密钥（服务器返回的是Base64编码）
+                const key = CryptoJS.enc.Base64.parse(data.key);
+                
+                // 解密内容
+                const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
+                    iv: iv,
+                    mode: CryptoJS.mode.CBC,
+                    padding: CryptoJS.pad.Pkcs7
+                });
+                
+                const html = decrypted.toString(CryptoJS.enc.Utf8);
+                
+                // 替换当前页面内容
+                document.open();
+                document.write(html);
+                document.close();
+            } catch (error) {
+                console.error('Decryption failed:', error);
+                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 18px;">页面加载失败，请刷新重试</div>';
+            }
+        }
+        
+        // 页面加载后自动解密
+        window.addEventListener('load', decryptContent);
+    </script>
+</head>
+<body>
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 18px;">
+        页面加载中，请稍候...
+    </div>
+</body>
+</html>
