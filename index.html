@@ -433,6 +433,33 @@
   menuToggle.addEventListener('click', () => {
     mobileMenu.classList.toggle('hidden');
   });
+  
+  // 为所有链接添加点击事件监听器，检测文件是否存在
+  document.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', async (e) => {
+      // 排除指向外部链接和当前页面内锚点的链接
+      if (link.href.startsWith('http') || link.href.includes('#')) {
+        return;
+      }
+      
+      e.preventDefault();
+      const url = link.href;
+      
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          // 文件存在，正常跳转
+          window.location.href = url;
+        } else {
+          // 文件不存在，跳转到tougao.html
+          window.location.href = 'tougao.html';
+        }
+      } catch (error) {
+        // 请求失败，跳转到tougao.html
+        window.location.href = 'tougao.html';
+      }
+    });
+  });
 </script>
 
 </body>
